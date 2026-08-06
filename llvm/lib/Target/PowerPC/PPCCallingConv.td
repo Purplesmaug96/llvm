@@ -237,7 +237,14 @@ def CC_PPC32_SVR4_Common : CallingConv<[
 
   // Split arguments have an alignment of 8 bytes on the stack.
   CCIfType<[i32], CCIfSplit<CCAssignToStack<4, 8>>>,
-  
+
+  // Xbox 360 (Xenon) ABI: integer args past the 8 GPRs occupy 8-byte stack
+  // slots starting at the linkage-area base (sp+0x54 with the xbox360
+  // linkage size). Alignment stays 4 so the first slot is not rounded away
+  // from sp+0x54, matching the 360 kernel / xenia shim convention.
+  CCIfType<[i32], CCIfSubtarget<"getTargetTriple().isXbox360()",
+                                 CCAssignToStack<8, 4>>>,
+
   CCIfType<[i32], CCAssignToStack<4, 4>>,
   
   CCIfType<[f32], CCAssignToStack<4, 4>>,

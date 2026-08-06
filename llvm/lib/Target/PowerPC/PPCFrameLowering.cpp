@@ -62,9 +62,11 @@ static unsigned computeLinkageSize(const PPCSubtarget &STI) {
   if (STI.isAIXABI() || STI.isPPC64())
     return (STI.isELFv2ABI() ? 4 : 6) * (STI.isPPC64() ? 8 : 4);
 
-  // MSVC for xbox 360 uses a minimum of 0x60 as the stack frame, So we should stick to that to avoid stack corruption
+  // Xbox 360 (Xenon) ABI: stack-passed arguments (args 9+) start at sp+0x54
+  // in 8-byte slots. This is the convention used by the 360 kernel and by
+  // emulators implementing it (e.g. xenia's kernel shims).
   if (STI.getTargetTriple().isXbox360())
-    return 0x60;
+    return 0x54;
 
   // 32-bit SVR4 ABI:
   return 8;
