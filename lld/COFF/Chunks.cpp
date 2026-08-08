@@ -936,6 +936,27 @@ void RangeExtensionThunkARM64::writeTo(uint8_t *buf) const {
   applyArm64Imm(buf + 4, target->getRVA() & 0xfff, 0);
 }
 
+// PPC32 absolute jump: lis hi / ori lo / mtctr / bctr.
+size_t RangeExtensionThunkPPC::getSize() const { return 16; }
+
+void RangeExtensionThunkPPC::writeTo(uint8_t *buf) const {
+  uint64_t addr = target->getRVA() + ctx.config.imageBase;
+  uint16_t hi = (addr + 0x8000) >> 16; // compensate lis sign-extension
+  uint16_t lo = addr & 0xffff;
+
+  // PPC is big-endian.
+  auto put = [&](size_t off, uint32_t ins) {
+    buf[off + 0] = ins >> 24;
+    buf[off + 1] = ins >> 16;
+    buf[off + 2] = ins >> 8;
+    buf[off + 3] = ins;
+  };
+  put(0, 0x3d800000 | (uint32_t)hi); // lis  r12, hi
+  put(4, 0x618c0000 | (uint32_t)lo);   // ori  r12, r12, lo
+  put(8, 0x7d8903a6);                  // mtctr r12
+  put(12, 0x4e800420);                 // bctr
+}
+
 LocalImportChunk::LocalImportChunk(COFFLinkerContext &c, Defined *s)
     : sym(s), ctx(c) {
   setAlignment(ctx.config.wordsize);

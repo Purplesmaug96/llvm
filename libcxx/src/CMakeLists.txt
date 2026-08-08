@@ -173,6 +173,7 @@ split_list(LIBCXX_LINK_FLAGS)
 include(FindLibcCommonUtils)
 
 # Build the shared library.
+if (LIBCXX_ENABLE_SHARED)
 add_library(cxx_shared SHARED ${LIBCXX_SOURCES} ${LIBCXX_HEADERS})
 target_include_directories(cxx_shared PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cxx_shared PUBLIC cxx-headers libcxx-libc-shared
@@ -244,7 +245,6 @@ if (LIBCXX_ENABLE_ABI_LINKER_SCRIPT)
   )
 endif()
 
-if (LIBCXX_ENABLE_SHARED)
   list(APPEND LIBCXX_BUILD_TARGETS "cxx_shared")
 endif()
 

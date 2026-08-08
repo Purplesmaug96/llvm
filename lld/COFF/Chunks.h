@@ -675,6 +675,27 @@ private:
   COFFLinkerContext &ctx;
 };
 
+// A range extension thunk for the Xbox 360 (32-bit PPC).  The REL24 call
+// displacement is only +/-8MB, which a 20MB+ image exceeds.  Bash
+// lis/ori/mtctr/bctr with a full 32-bit absolute address instead.
+class RangeExtensionThunkPPC : public NonSectionCodeChunk {
+public:
+  explicit RangeExtensionThunkPPC(COFFLinkerContext &ctx, Defined *t)
+      : target(t), ctx(ctx) {
+    setAlignment(4);
+  }
+  size_t getSize() const override;
+  void writeTo(uint8_t *buf) const override;
+  MachineTypes getMachine() const override {
+    return llvm::COFF::IMAGE_FILE_MACHINE_XBOX360;
+  }
+
+  Defined *target;
+
+private:
+  COFFLinkerContext &ctx;
+};
+
 // A ragnge extension thunk used for both ARM64EC and ARM64 machine types.
 class RangeExtensionThunkARM64 : public NonSectionCodeChunk {
 public:

@@ -427,6 +427,16 @@ bool Writer::isInRange(uint16_t relType, uint64_t s, uint64_t p, int margin,
     default:
       return true;
     }
+} else if (machine == IMAGE_FILE_MACHINE_XBOX360) {
+    // The 24-bit PPC displacement field is signed and shifted left 2,
+    // giving a +/- 8 MiB (0x7FFFFF) window around the call site.
+    int64_t diff = AbsoluteDifference(s, p + 4) + margin;
+    switch (relType) {
+    case IMAGE_REL_PPC_REL24:
+      return diff <= 0x7FFFFF;
+    default:
+      return true;
+    }
   } else {
     return true;
   }
@@ -447,6 +457,9 @@ Writer::getThunk(DenseMap<uint64_t, Defined *> &lastThunks, Defined *target,
     break;
   case Triple::aarch64:
     c = make<RangeExtensionThunkARM64>(machine, target);
+    break;
+  case Triple::ppc:
+    c = make<RangeExtensionThunkPPC>(ctx, target);
     break;
   default:
     llvm_unreachable("Unexpected architecture");
@@ -645,7 +658,8 @@ bool Writer::verifyRanges(const std::vector<Chunk *> chunks) {
 // Assign addresses and add thunks if necessary.
 void Writer::finalizeAddresses() {
   assignAddresses();
-  if (ctx.config.machine != ARMNT && !isAnyArm64(ctx.config.machine))
+  if (ctx.config.machine != ARMNT && !isAnyArm64(ctx.config.machine) &&
+      ctx.config.machine != IMAGE_FILE_MACHINE_XBOX360)
     return;
 
   size_t origNumChunks = 0;
