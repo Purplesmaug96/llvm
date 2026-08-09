@@ -429,11 +429,11 @@ bool Writer::isInRange(uint16_t relType, uint64_t s, uint64_t p, int margin,
     }
 } else if (machine == IMAGE_FILE_MACHINE_XBOX360) {
     // The 24-bit PPC displacement field is signed and shifted left 2,
-    // giving a +/- 8 MiB (0x7FFFFF) window around the call site.
+    // giving a +/- 32 MiB (0x7FFFFF << 2) window around the call site.
     int64_t diff = AbsoluteDifference(s, p + 4) + margin;
     switch (relType) {
     case IMAGE_REL_PPC_REL24:
-      return diff <= 0x7FFFFF;
+      return diff <= 0x1FFFFFC;
     default:
       return true;
     }

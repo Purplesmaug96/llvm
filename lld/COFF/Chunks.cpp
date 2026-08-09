@@ -160,8 +160,10 @@ void SectionChunk::applyRelX86(uint8_t *off, uint16_t type, OutputSection *os,
 }
 
 uint32_t encodeBLOffset(uint32_t originalInstruction, int32_t newOffset) {
-  if (!isInt<24>(newOffset))
-    error("PPC32 BL relocation doesnt fit into 24 bit range!");
+  // The 24-bit LI field holds newOffset >> 2, so the byte displacement
+  // must fit in a signed 26-bit value.
+  if (!isInt<26>(newOffset))
+    error("PPC32 BL relocation doesnt fit into 26 bit range!");
 
   uint32_t newInstruction = originalInstruction & 0xFC000003;
   newInstruction |= (newOffset & 0x03FFFFFC);
@@ -189,14 +191,14 @@ void SectionChunk::applyRelPPC(uint8_t *off, uint16_t type, OutputSection *os,
   switch (type) {
   case IMAGE_REL_PPC_ABSOLUTE: {
     break;
-  }    
+  }
   case IMAGE_REL_PPC_REFHI: {
-    write16be(off + 2, (s + imageBase + 0x8000) >> 16); 
+    write16be(off + 2, (s + imageBase + 0x8000) >> 16);
     lastPairValue = 0;
     break;
   }
   case IMAGE_REL_PPC_REFLO: {
-    write16be(off + 2, (s + imageBase) & 0xFFFF); 
+    write16be(off + 2, (s + imageBase) & 0xFFFF);
     lastPairValue = 0;
     break;
   }
@@ -941,7 +943,9 @@ size_t RangeExtensionThunkPPC::getSize() const { return 16; }
 
 void RangeExtensionThunkPPC::writeTo(uint8_t *buf) const {
   uint64_t addr = target->getRVA() + ctx.config.imageBase;
-  uint16_t hi = (addr + 0x8000) >> 16; // compensate lis sign-extension
+  // ori does not sign-extend, so use the plain high half (no +0x8000
+  // adjustment, which is only valid with sign-extending addi/lwz).
+  uint16_t hi = addr >> 16;
   uint16_t lo = addr & 0xffff;
 
   // PPC is big-endian.
@@ -1386,8 +1390,8 @@ void DynamicRelocsChunk::writeTo(uint8_t *buf) const {
 void ImportThunkChunkPPC::writeTo(uint8_t *buf) const {
   uint32_t address = impSymbol->getRVA() + ctx.config.imageBase;
   memcpy(buf, importThunkPPC, sizeof(importThunkPPC));
-  write16be(buf + 2, (address + 0x8000) >> 16); 
+  write16be(buf + 2, (address + 0x8000) >> 16);
   write16be(buf + 6, address & 0xFFFF);
 }
 
-} 
+}
